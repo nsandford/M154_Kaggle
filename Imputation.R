@@ -3,7 +3,7 @@ Train <- read.csv('cs-training.csv', header=TRUE,comment.char="")
 Train$X <- NULL # Removes redundant indexing
 N_var <- length(colnames(Train)) # Number of variables
 N_obs <- length(Train$age) # Number of Observations
-Test <- read.csv('cs-test.cv', header=TRUE, comment.char="")
+Test <- read.csv('cs-test.csv', header=TRUE, comment.char="")
 Test$X <- NULL # Removes redundant indexing
 
 Update_MI <- function(df) {
