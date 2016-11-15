@@ -1,0 +1,5 @@
+### Imputation ###
+Monthly Income---Looks Good
+Debt Ratio---Looks Good
+Number of Dependents---218 Negative Numbers <- Set to zero
+
