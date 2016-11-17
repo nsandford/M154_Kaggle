@@ -1,0 +1,68 @@
+---
+title: "11/16 Lab"
+author: "Chris Donnay"
+date: "November 16, 2016"
+output: pdf_document
+---
+
+```{r}
+library(class)
+library(glmnet)
+
+normalize <- function(x) {
+  num <- x - min(x)
+  denom <- max(x) - min(x)
+  return (num/denom)
+}
+
+
+training.data.raw <- read.csv('train.csv',header=T,na.strings=c(""))
+
+data <- subset(training.data.raw,select=c(2,3,5,6,7,8,10,12)) #chooses relevant data
+data$Age[is.na(data$Age)] <- mean(data$Age,na.rm=T) #updates missing data
+
+data <- data[!is.na(data$Embarked),]
+rownames(data) <- NULL
+
+data[2] <- as.data.frame(lapply(data[2], normalize))
+data[3] <- as.integer(data[3])
+data[4] <- as.data.frame(lapply(data[4], normalize))
+data[5]<- as.data.frame(lapply(data[5], normalize))
+data[6]<- as.data.frame(lapply(data[6], normalize))
+data[7]<- as.data.frame(lapply(data[7], normalize))
+
+
+
+train <- data[1:800,2:8]
+test <- data[801:889,2:8]
+
+sapply(test.labels,function(x) sum(is.na(x)))
+
+train.labels <- data[1:800,1]
+test.labels <- data[801:889,1]
+
+death_pred <- knn(train, test, train.labels, k=25)
+
+#I dont think KNN likes my categorical stuff? probably sex and embarked
+
+train2 <- data[1:800,]
+test2 <- data[801:889,2:8]
+
+model <- glm(Survived ~.,family=binomial(link='logit'),data=train2) #logistic r
+model2<- glmnet(train, train.labels, family ="binomial") #doesn't work
+
+p<-predict(model, test2, type = 'response') #predictions!!!
+
+#Does AUC for our model
+library(ROCR)
+
+pr <- prediction(p, test.labels) #tells us which ones should have been successes
+prf <- performance(pr, measure = "tpr", x.measure = "fpr") #stores TP vs FP
+plot(prf)
+
+auc <- performance(pr, measure = "auc")
+auc <- auc@y.values[[1]]
+auc #what is the AUC
+
+```
+
