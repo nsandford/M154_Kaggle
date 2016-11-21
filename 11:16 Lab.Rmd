@@ -4,60 +4,72 @@ author: "Chris Donnay"
 date: "November 16, 2016"
 output: pdf_document
 ---
-
 ```{r}
-library(class)
-library(glmnet)
+#Fully functional GLM
+library(ROCR) #AUC
 
 normalize <- function(x) {
+  #normalize is a function that normalizes my date
+  #inputs: x, a vector of data
+  #outputs: a vector of normalized data
   num <- x - min(x)
   denom <- max(x) - min(x)
   return (num/denom)
 }
 
 
-training.data.raw <- read.csv('train.csv',header=T,na.strings=c(""))
-
+training.data.raw <- read.csv('train.csv',header=T,na.strings=c("")) #import Titanic data
 data <- subset(training.data.raw,select=c(2,3,5,6,7,8,10,12)) #chooses relevant data
-data$Age[is.na(data$Age)] <- mean(data$Age,na.rm=T) #updates missing data
-
-data <- data[!is.na(data$Embarked),]
+data$Age[is.na(data$Age)] <- mean(data$Age,na.rm=T) #imputes missing Ages with the mean
+data <- data[!is.na(data$Embarked),] #removes 2 entries without Embarked data
 rownames(data) <- NULL
 
-data[2] <- as.data.frame(lapply(data[2], normalize))
-data[3] <- as.integer(data[3])
-data[4] <- as.data.frame(lapply(data[4], normalize))
-data[5]<- as.data.frame(lapply(data[5], normalize))
-data[6]<- as.data.frame(lapply(data[6], normalize))
-data[7]<- as.data.frame(lapply(data[7], normalize))
+j<-c(2,4,5,6,7)
+for(i in j){
+  data[i]<-as.data.frame(lapply(data[i], normalize)) #normalizes numeric data
+}
 
 
+train2 <- data[1:800,] #saves both explanatory and response training data
+test2 <- data[801:889,] #saves both explanatory and response test data
 
-train <- data[1:800,2:8]
-test <- data[801:889,2:8]
+train.labels <- data[1:800,1] #saves response variable of training data
+test.labels <- data[801:889,1] #saves response variable of test data
 
-sapply(test.labels,function(x) sum(is.na(x)))
 
-train.labels <- data[1:800,1]
-test.labels <- data[801:889,1]
+glm_model <- glm(Survived ~.,family=binomial(link='logit'),data=train2) #logistic regression
 
-death_pred <- knn(train, test, train.labels, k=25)
+p<-predict(glm_model, test2, type = 'response') #predictions with logistic regression
+pr <- prediction(p, test.labels) #tells us which ones should have been successes, 
+prf <- performance(pr, measure = "tpr", x.measure = "fpr") #stores True Positive vs False Positive
+plot(prf)
 
-#I dont think KNN likes my categorical stuff? probably sex and embarked
+auc <- performance(pr, measure = "auc")
+auc <- auc@y.values[[1]]
+auc #what is the AUC
 
-train2 <- data[1:800,]
-test2 <- data[801:889,2:8]
 
-model <- glm(Survived ~.,family=binomial(link='logit'),data=train2) #logistic r
-model2<- glmnet(train, train.labels, family ="binomial") #doesn't work
+```
 
-p<-predict(model, test2, type = 'response') #predictions!!!
+```{r}
+#Fully functional KNN
+library(ROCR) #AUC
+data(mtcars)
 
-#Does AUC for our model
-library(ROCR)
+mtcars$mpg[mtcars$mpg <= 20] <- 0 #AUC only likes binary things
+mtcars$mpg[mtcars$mpg > 20] <- 1
 
-pr <- prediction(p, test.labels) #tells us which ones should have been successes
-prf <- performance(pr, measure = "tpr", x.measure = "fpr") #stores TP vs FP
+train <- mtcars[1:25,-1] #saves explanatory training data as first 25 entries
+test <- mtcars[26:32,-1] #saves explanatory test data as remaining entries
+
+train.labels <- mtcars[1:25,1] #saves response variable of training data
+test.labels <- mtcars[26:32,1] #saves response variable of test data
+
+mpg_pred <- knn(train, test, train.labels, k=5, prob=TRUE) #KNN algorithm
+
+
+pr <- prediction(attr(mpg_pred,"prob"), test.labels)
+prf <- performance(pr, measure = "tpr", x.measure = "fpr") #stores True Positive vs False Positive
 plot(prf)
 
 auc <- performance(pr, measure = "auc")
@@ -65,4 +77,3 @@ auc <- auc@y.values[[1]]
 auc #what is the AUC
 
 ```
-
